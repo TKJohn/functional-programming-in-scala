@@ -8,7 +8,7 @@ sealed trait List[+A]
 
 case object Nil extends List[Nothing]
 
-case class Cons[+A](head: A, trail: List[A]) extends List[A]
+case class Cons[+A](head: A, tail: List[A]) extends List[A]
 
 
 object List {
@@ -31,14 +31,14 @@ object List {
   def tail[A](as: List[A]): List[A] =
     as match {
       case Nil => Nil
-      case Cons(_, trail) => trail
+      case Cons(_, tail) => tail
     }
 
   // p3.3
   def setHead[A](as: List[A], h: A): List[A] =
     as match {
       case Nil => Cons(h, Nil)
-      case Cons(_, trail) => Cons(h, trail)
+      case Cons(_, tail) => Cons(h, tail)
     }
 
   // p3.4
@@ -56,10 +56,10 @@ object List {
   def dropWith[A](as: List[A], f: A => Boolean): List[A] = {
     as match {
       case Nil => Nil
-      case Cons(head, trail) => if (f(head)) {
-        dropWith(trail, f)
+      case Cons(head, tail) => if (f(head)) {
+        dropWith(tail, f)
       } else {
-        Cons(head, dropWith(trail, f))
+        Cons(head, dropWith(tail, f))
       }
     }
   }
@@ -67,7 +67,7 @@ object List {
   def append[A](a1: List[A], a2: List[A]): List[A] =
     a1 match {
       case Nil => a2
-      case Cons(head, trail) => Cons(head, append(trail, a2))
+      case Cons(head, tail) => Cons(head, append(tail, a2))
     }
 
   //p3.6
@@ -75,8 +75,46 @@ object List {
     as match {
       case Nil => Nil
       case Cons(_, Nil) => Nil
-      case Cons(head, trail) => Cons(head, init(trail))
+      case Cons(head, tail) => Cons(head, init(tail))
     }
+
+  def foldRight[A, B](as: List[A], z: B)(f: (A, B) => B): B =
+    as match {
+      case Nil => z
+      case Cons(head, tail) => f(head, foldRight(tail, z)(f))
+    }
+
+  //p3.9
+  def length[A](as: List[A]): Int = foldRight(as, 0)((_, count) => count + 1)
+
+  //3.10
+  @tailrec
+  def foldLeft[A, B](as: List[A], z: B)(f: (B, A) => B): B = {
+    as match {
+      case Nil => z
+      case Cons(head, tail) => foldLeft(tail, f(z, head))(f)
+    }
+  }
+
+  //3.11
+  def sumLeft(as: List[Int]): Int = foldLeft(as, 0)(_ + _)
+
+  def productLeft(as: List[Double]): Double = foldLeft(as, 1.0)(_ * _)
+
+  def lengthLeft[A](as: List[A]): Int = foldLeft(as, 0)((count, _) => count + 1)
+
+  //3.12
+  def reverseLeft[A](as: List[A]): List[A] = foldLeft(as, Nil: List[A])((acc, head) => Cons(head, acc))
+
+  //3.13
+  def foldRightByLeft[A, B](as: List[A], z: B)(f: (A, B) => B): B =
+    foldLeft(reverseLeft(as), z)((b, a) => f(a, b))
+
+  //3.14
+  def appendLeft[A](l: List[A], r: List[A]): List[A] = foldRightByLeft(l, r)(Cons(_, _))
+
+  //3.15
+  def concat[A](l: List[List[A]]): List[A] = foldRightByLeft(l, Nil: List[A])(appendLeft)
 }
 
 
@@ -96,8 +134,11 @@ object Main {
     }
     System.out.println(x)
 
-
     //
-    System.out.println(List.init[Int](List(1, 2, 3, 4, 5, 6)))
+    System.out.println(reverseLeft(List(1, 2, 3, 4, 5, 6)))
+
+    //p3.8
+    val y = foldRight(List(1, 2, 3, 4), Nil: List[Int])(Cons(_, _))
+    System.out.println(y)
   }
 }
