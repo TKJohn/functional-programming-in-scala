@@ -115,8 +115,59 @@ object List {
 
   //3.15
   def concat[A](l: List[List[A]]): List[A] = foldRightByLeft(l, Nil: List[A])(appendLeft)
-}
 
+  //3.16
+  def add1(l: List[Int]): List[Int] = foldRightByLeft(l, Nil: List[Int])((head, acc) => Cons(head + 1, acc))
+
+  //3.17
+  def double2String(l: List[Double]): List[String] = foldRightByLeft(l, Nil: List[String])((head, acc) => Cons(head.toString, acc))
+
+  //3.18
+  def map[A, B](as: List[A])(f: A => B): List[B] = foldRightByLeft(as, Nil: List[B])((head, acc) => Cons(f(head), acc))
+
+  //3.19
+  def filter[A](as: List[A])(f: A => Boolean): List[A] = foldRightByLeft(as, Nil: List[A])((head, acc) => if (f(head)) Cons(head, acc) else acc)
+
+  //3.20
+  def flatMap[A, B](as: List[A])(f: A => List[B]): List[B] = concat(map(as)(f))
+
+  //3.21
+  def filterByFlat[A](as: List[A])(f: A => Boolean): List[A] = flatMap(as)(a => if (f(a)) List(a) else Nil)
+
+  //3.22
+  def add(l: List[Int], r: List[Int]): List[Int] = {
+    (l, r) match {
+      case (_, Nil) => Nil
+      case (Nil, _) => Nil
+      case (Cons(headL, tailL), Cons(headR, tailR)) => Cons(headL + headR, add(tailL, tailR))
+    }
+  }
+
+  //3.23
+  def zipWith[A, B, C](l: List[A], r: List[B])(f: (A, B) => C): List[C] = (l, r) match {
+    case (_, Nil) => Nil
+    case (Nil, _) => Nil
+    case (Cons(headL, tailL), Cons(headR, tailR)) => Cons(f(headL, headR), zipWith(tailL, tailR)(f))
+  }
+
+  //3.24
+  @tailrec
+  def startWith[A](sup: List[A], sub: List[A]): Boolean =
+    (sup, sub) match {
+      case (_, Nil) => true
+      case (Nil, _) => false
+      case (Cons(h1, t1), Cons(h2, t2)) => (h1 == h2) && startWith(t1, t2)
+    }
+
+  @tailrec
+  def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = {
+    sup match {
+      case Nil => Nil == sub
+      case _ if startWith(sup, sub) => true
+      case Cons(_, tail) => hasSubsequence(tail, sub)
+    }
+  }
+}
 
 object Main {
 
@@ -135,7 +186,7 @@ object Main {
     System.out.println(x)
 
     //
-    System.out.println(reverseLeft(List(1, 2, 3, 4, 5, 6)))
+    System.out.println(hasSubsequence(List(1, 2, 3, 4, 5, 6), List(3, 4, 5)))
 
     //p3.8
     val y = foldRight(List(1, 2, 3, 4), Nil: List[Int])(Cons(_, _))
