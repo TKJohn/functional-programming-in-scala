@@ -35,6 +35,35 @@ sealed trait Stream[+A] {
     case _ => this
   }
 
+  // 5.3
+  def takeWhile(p: A => Boolean): Stream[A] = this match {
+    case Cons(h, t) if p(h()) => cons(h(), t().takeWhile(p))
+    case _ => empty
+  }
+
+  def foldRight[B](z: => B)(f: (A, => B) => B): B = this match {
+    case Cons(h, t) => f(h(), t().foldRight(z)(f))
+    case _ => z
+  }
+
+  // 5.4
+  def forAll(p: A => Boolean): Boolean = foldRight(true)((a, b) => p(a) && b)
+
+  // 5.5
+  def takeWhile_1(p: A => Boolean): Stream[A] =
+    foldRight(empty)((h, t) => if (p(h)) cons(h, t) else empty)
+
+  // 5.6
+  def headOption: Option[A] = foldRight(None[A])((h, _) => Some(h))
+
+  // 5.7
+  def map[B](f: A => B): Stream[B] = foldRight(empty)((h, t) => cons(f(h), t))
+
+  def filter(f: A => Boolean): Stream[A] = foldRight(empty)((h, t) => if (f(h)) cons(h, t) else t)
+
+  def append[B >: A](b: => Stream[B]): Stream[B] = foldRight(b)(cons(_, _))
+
+  def flatMap[B](f: A => Stream[B]): Stream[B] = foldRight(empty[B])((h, t) => f(h).append(t))
 }
 
 case object Empty extends Stream[Nothing]
