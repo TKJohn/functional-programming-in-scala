@@ -1,6 +1,6 @@
-package fpinscla
+package fpinscla.laziness
 
-import fpinscla.Stream.{cons, empty, unfold}
+import fpinscla.laziness.Stream.{cons, empty, unfold}
 
 import scala.annotation.tailrec
 import scala.{Stream => _}
