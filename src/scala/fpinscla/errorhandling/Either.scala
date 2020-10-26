@@ -1,4 +1,4 @@
-package fpinscla
+package fpinscla.errorhandling
 
 //hide std library `Option` and `Either`, since we are writing our own in this chapter
 
