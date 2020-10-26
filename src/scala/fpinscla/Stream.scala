@@ -1,6 +1,6 @@
 package fpinscla
 
-import fpinscla.Stream.{cons, empty}
+import fpinscla.Stream.{cons, empty, unfold}
 
 import scala.annotation.tailrec
 import scala.{Stream => _}
@@ -64,6 +64,54 @@ sealed trait Stream[+A] {
   def append[B >: A](b: => Stream[B]): Stream[B] = foldRight(b)(cons(_, _))
 
   def flatMap[B](f: A => Stream[B]): Stream[B] = foldRight(empty[B])((h, t) => f(h).append(t))
+
+  // 5.13
+  def mapViaUnfold[B](f: A => B): Stream[B] =
+    unfold(this) {
+      case Empty => None
+      case Cons(h, t) => Some(f(h()), t())
+    }
+
+  def takeViaUnfold(n: Int): Stream[A] =
+    unfold((this, n)) {
+      case (Empty, _) => None
+      case (_, 0) => None
+      case (Cons(h, t), n) => Some(h(), (t(), n - 1))
+    }
+
+  def takeWhileViaUnfold(p: A => Boolean): Stream[A] =
+    unfold(this) {
+      case Cons(h, t) if p(h()) => Some(h(), t())
+      case _ => None
+    }
+
+  def zipWithViaUnfold[B, C](r: Stream[B])(f: (A, B) => C): Stream[C] =
+    unfold(this, r) {
+      case (Cons(hl, tl), Cons(hr, tr)) => Some(f(hl(), hr()), (tl(), tr()))
+      case _ => None
+    }
+
+  def zipAllViaUnfold[B](r: Stream[B]): Stream[(Option[A], Option[B])] =
+    unfold(this, r) {
+      case (Cons(hl, tl), Cons(hr, tr)) => Some((Some(hl()), Some(hr())), (tl(), tr()))
+      case (Empty, Cons(hr, tr)) => Some((None, Some(hr())), (empty, tr()))
+      case (Cons(hl, tl), Empty) => Some((Some(hl()), None), (tl(), empty))
+      case (Empty, Empty) => None
+    }
+
+  // 5.14
+  def startsWith[A](s: Stream[A]): Boolean =
+    zipAllViaUnfold(s).takeWhile(_._2.isDefined).forAll {
+      case (l, r) => l equals r
+    }
+
+  // 5.15
+  def tails: Stream[Stream[A]] =
+    unfold(this) {
+      case Empty => None
+      case s => Some(s, s.drop(1))
+    } append Stream(empty)
+
 }
 
 case object Empty extends Stream[Nothing]
