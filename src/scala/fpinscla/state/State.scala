@@ -144,4 +144,49 @@ object State {
 
   def sequence[S, A](fs: List[State[S, A]]): State[S, List[A]] =
     fs.foldRight(unit[S, List[A]](List.empty))((r, acc) => r.map2(acc)(_ :: _))
+
+  def get[S]: State[S, S] = State(s => (s, s))
+
+  def set[S](s: S): State[S, Unit] = State(_ => ((), s))
+
+  def modify[S](f: S => S): State[S, Unit] = for {
+    s <- get
+    _ <- set(f(s))
+  } yield ()
+}
+
+// 6.11
+sealed trait Input
+
+case object Coin extends Input
+
+case object Turn extends Input
+
+case class Machine(locked: Boolean, candies: Int, coins: Int)
+
+object Machine {
+
+  // Curring update than instance method, helps chain methods with `compose`
+  def update(input: Input)(machine: Machine): Machine = {
+    (input, machine) match {
+      case (_, Machine(_, 0, _)) => machine // A machine that’s out of candy ignores all inputs.
+      case (Turn, Machine(true, _, _)) => machine // Turning the knob on a locked machine does nothing.
+      case (Coin, Machine(false, _, _)) => machine // Inserting a coin into an unlocked machine does nothing.
+
+      //Turning the knob on an unlocked machine will cause it to dispense candy and become locked.
+      case (Turn, Machine(false, candies, coins)) => Machine(true, candies - 1, coins)
+
+      //Inserting a coin into a locked machine will cause it to unlock if there’s any candy left.
+      case (Coin, Machine(true, candies, coins)) => Machine(false, candies, coins + 1)
+    }
+  }
+
+  import fpinscla.state.State.{get, modify, sequence}
+
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = for {
+    // _ <- sequence(inputs.map(modify[Machine] _ compose update))
+    // _ <- sequence(inputs.map((modify[Machine] _) compose update))
+    _ <- sequence(inputs.map(input => modify(update(input))))
+    s <- get
+  } yield (s.coins, s.candies)
 }
